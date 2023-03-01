@@ -4,7 +4,7 @@ const chalk = require('chalk');
 const cliProgress = require('cli-progress');
 require("dotenv").config();
 const { ApiPromise } = require('@polkadot/api');
-const { HttpProvider } = require('@polkadot/rpc-provider');
+const { HttpProvider, WsProvider } = require('@polkadot/rpc-provider');
 const { xxhashAsHex } = require('@polkadot/util-crypto');
 const execFileSync = require('child_process').execFileSync;
 const execSync = require('child_process').execSync;
@@ -16,8 +16,10 @@ const originalSpecPath = path.join(__dirname, 'data', 'genesis.json');
 const forkedSpecPath = path.join(__dirname, 'data', 'fork.json');
 const storagePath = path.join(__dirname, 'data', 'storage.json');
 
-// Using http endpoint since substrate's Ws endpoint has a size limit.
-const provider = new HttpProvider(process.env.HTTP_RPC_ENDPOINT || 'http://localhost:9933')
+const provider = process.env.WS_ENDPOINT ?
+  new WsProvider(process.env.WS_ENDPOINT) :
+  new HttpProvider(process.env.HTTP_RPC_ENDPOINT || 'http://localhost:9933')
+
 // The storage download will be split into 256^chunksLevel chunks.
 const chunksLevel = process.env.FORK_CHUNKS_LEVEL || 1;
 const totalChunks = Math.pow(256, chunksLevel);
@@ -44,7 +46,15 @@ const progressBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_cla
  * e.g. console.log(xxhashAsHex('System', 128)).
  */
 let prefixes = ['0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9' /* System.Account */];
-const skippedModulesPrefix = ['System', 'Session', 'Babe', 'Grandpa', 'GrandpaFinality', 'FinalityTracker', 'Authorship'];
+const skippedModulesPrefix = [
+  'System',
+  'Session',
+  'Babe',
+  'Grandpa',
+  'GrandpaFinality',
+  'FinalityTracker',
+  'Authorship',
+];
 
 async function fixParachinStates (api, forkedSpec) {
   const skippedKeys = [
@@ -102,7 +112,7 @@ async function main() {
   const modules = metadata.asLatest.pallets;
   modules.forEach((module) => {
     if (module.storage) {
-      if (!skippedModulesPrefix.includes(module.name)) {
+      if (!skippedModulesPrefix.includes(module.name.toString())) {
         prefixes.push(xxhashAsHex(module.name, 128));
       }
     }

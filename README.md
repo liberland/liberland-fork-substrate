@@ -1,3 +1,5 @@
+Original source: https://github.com/maxsam4/fork-off-substrate
+
 # Fork off substrate
 
 This script allows bootstrapping a new substrate chain with the current state of a live chain. Using this, you can create a fork of Polkadot, Kusama and other substrate chain for development purposes.
